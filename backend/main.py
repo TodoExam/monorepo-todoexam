@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
 import crud
@@ -13,6 +14,15 @@ app = FastAPI(
     title="TO-DO List API",
     description="API REST para gestionar tareas con operaciones CRUD",
     version="1.0.0"
+)
+
+# Configurar CORS para aceptar todo
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Permitir todos los orígenes
+    allow_credentials=True,
+    allow_methods=["*"],  # Permitir todos los métodos
+    allow_headers=["*"],  # Permitir todos los headers
 )
 
 @app.get("/")

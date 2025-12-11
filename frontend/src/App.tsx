@@ -39,7 +39,15 @@ function App() {
 
     try {
       setError(null);
-      await createTask(formData);
+      // Solo incluir due_at si tiene valor
+      const taskData: CreateTaskDto = {
+        title: formData.title,
+        description: formData.description,
+      };
+      if (formData.due_at) {
+        taskData.due_at = formData.due_at;
+      }
+      await createTask(taskData);
       setFormData({ title: '', description: '', due_at: '' });
       await loadTasks();
     } catch (err) {
@@ -47,14 +55,39 @@ function App() {
     }
   };
 
-  const handleToggleStatus = async (task: Task) => {
-    const newStatus = task.status === 'done' ? 'pending' : 'done';
+  const handleStatusChange = async (task: Task, newStatus: 'pending' | 'in_progress' | 'completed') => {
     try {
       setError(null);
       await updateTask(task.id, { status: newStatus });
       await loadTasks();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al actualizar la tarea');
+    }
+  };
+
+  const getNextStatus = (currentStatus: string): 'pending' | 'in_progress' | 'completed' => {
+    switch (currentStatus) {
+      case 'pending':
+        return 'in_progress';
+      case 'in_progress':
+        return 'completed';
+      case 'completed':
+        return 'pending';
+      default:
+        return 'pending';
+    }
+  };
+
+  const getStatusLabel = (status: string): string => {
+    switch (status) {
+      case 'pending':
+        return 'Pendiente';
+      case 'in_progress':
+        return 'En Progreso';
+      case 'completed':
+        return 'Completada';
+      default:
+        return status;
     }
   };
 
@@ -139,16 +172,16 @@ function App() {
               {tasks.map((task) => (
                 <div
                   key={task.id}
-                  className={`task-card ${task.status === 'done' ? 'done' : ''}`}
+                  className={`task-card ${task.status === 'completed' ? 'completed' : ''}`}
                 >
                   <div className="task-header">
                     <h3>{task.title}</h3>
                     <button
-                      onClick={() => handleToggleStatus(task)}
-                      className={`status-toggle ${task.status === 'done' ? 'done' : ''}`}
-                      title={task.status === 'done' ? 'Marcar como pendiente' : 'Marcar como completada'}
+                      onClick={() => handleStatusChange(task, getNextStatus(task.status))}
+                      className={`status-toggle ${task.status}`}
+                      title={`Cambiar estado: ${getStatusLabel(getNextStatus(task.status))}`}
                     >
-                      {task.status === 'done' ? '✓' : '○'}
+                      {task.status === 'completed' ? '✓' : task.status === 'in_progress' ? '◐' : '○'}
                     </button>
                   </div>
 
@@ -167,7 +200,7 @@ function App() {
                     )}
                     <div className="task-status-badge">
                       <span className={`badge ${task.status}`}>
-                        {task.status === 'done' ? 'Completada' : 'Pendiente'}
+                        {getStatusLabel(task.status)}
                       </span>
                     </div>
                   </div>

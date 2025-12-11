@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: todo_db
     ports:
-      - "5439:5439"
+      - "5439:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -17,9 +17,13 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - todo-network
 
   backend:
-    build: .
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: todo_backend
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/todo_db
@@ -29,6 +33,27 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - todo-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_BASE_URL=${VITE_BASE_URL:-http://localhost:8010}
+    container_name: todo-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - todo-network
 
 volumes:
   postgres_data:
+
+networks:
+  todo-network:
+    driver: bridge
